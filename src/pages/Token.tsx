@@ -40,7 +40,7 @@ import { getCoinExactName, transfer } from 'core/utils/client';
 import {
   NODE_URL,
   secondaryErrorMessageColor,
-  // STATIC_GAS_AMOUNT,
+  STATIC_GAS_AMOUNT,
 } from '../core/constants';
 
 /**
@@ -99,8 +99,6 @@ function Token() {
   ] = useState<AccountResource | undefined>(undefined);
   const [refreshState, setRefreshState] = useState(true);
   const [isTransferLoading, setIsTransferLoading] = useState(false);
-  const [lastBalance, setLastBalance] = useState<number>(-1);
-  const [lastTransferAmount, setLastTransferAmount] = useState<number>(-1);
   const [
     lastTransactionStatus,
     setLastTransactionStatus,
@@ -120,20 +118,17 @@ function Token() {
     event?.preventDefault();
     if (toAddress && aptosAccount && transferAmount) {
       setIsTransferLoading(true);
-      setLastBalance(Number(tokenBalance));
-      setLastTransferAmount(Number(transferAmount));
       try {
-        // TODO: @khanh submit tranfer
         const resourceName = getCoinExactName(id);
         if (aptosAccount && resourceName) {
           // eslint-disable-next-line max-len
           await transfer(new AptosClient(NODE_URL), aptosAccount, toAddress, Number(transferAmount), resourceName);
         }
 
-        // if (Number(transferAmount) >= Number(tokenBalance) - STATIC_GAS_AMOUNT) {
-        //   setLastTransactionStatus(TransferResult.AmountWithGasOverLimit);
-        //   throw new Error(TransferResult.AmountOverLimit);
-        // }
+        if (Number(transferAmount) >= Number(tokenBalance) - STATIC_GAS_AMOUNT) {
+          setLastTransactionStatus(TransferResult.AmountWithGasOverLimit);
+          throw new Error(TransferResult.AmountOverLimit);
+        }
         // const accountResponse = await getAccountResources({
         //   address: toAddress,
         //   nodeUrl: NODE_URL,
@@ -192,9 +187,7 @@ function Token() {
         && (lastTransactionStatus === TransferResult.Success
           || lastTransactionStatus === TransferResult.IncorrectPayload)
       ) {
-        const newTokenBalance = tokenBalance;
         toast({
-          description: `${lastTransactionStatus}. Amount transferred: ${lastTransferAmount}, gas consumed: ${lastBalance - lastTransferAmount - Number(newTokenBalance)}`,
           duration: 7000,
           isClosable: true,
           status: (lastTransactionStatus === TransferResult.Success) ? 'success' : 'error',
