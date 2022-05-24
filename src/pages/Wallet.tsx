@@ -89,6 +89,20 @@ interface SubmitTransactionProps {
   toAddress: string;
 }
 
+interface Transaction {
+  data: any;
+  from: string;
+  gas: number;
+  gasPrice: number;
+  hash: string;
+  success: boolean;
+  timestamp: number;
+  toAddress: string;
+  type: string;
+  version: number;
+  vmStatus: string;
+}
+
 interface FundWithFaucetProps {
   address?: string;
   faucetUrl?: string;
@@ -174,7 +188,7 @@ function Wallet() {
   const [lastBalance, setLastBalance] = useState<number>(-1);
   const [lastTransferAmount, setLastTransferAmount] = useState<number>(-1);
   const [listAssets, setListAssets] = useState<Asset[]>();
-  const [listActivity, setListActivity] = useState<any>();
+  const [listActivity, setListActivity] = useState<Transaction[]>();
   const [tabIndex, setTabIndex] = useState(0);
   const [transaction, setTransaction] = useState<any>();
   const [
@@ -300,10 +314,32 @@ function Wallet() {
     loadAssets(resource).then(setListAssets);
   };
 
-  const handleTabActivity = () => {
+  const handleTabActivity = async () => {
     // TODO: Call list activity -> set to listActivity @haipn
-    setListActivity([]);
+    const client = new AptosClient(NODE_URL);
+    if (address) {
+      const data = await client.getAccountTransactions(address);
+      console.log(data);
+      const transactions = data.map((item: any) => ({
+        data: item.payload,
+        from: item.sender,
+        gas: item.gas_used,
+        gasPrice: item.gas_unit_price,
+        hash: item.hash,
+        success: item.success,
+        timestamp: item.timestamp,
+        toAddress: item.payload.function,
+        type: item.type,
+        version: item.version,
+        vmStatus: item.vm_status,
+      }));
+      setListActivity(transactions);
+    }
   };
+
+  useEffect(() => {
+    console.log(listActivity, 'listActivity');
+  }, [listActivity]);
 
   const handleOpenTransaction = (data: any) => {
     // TODO: set data transaction @haipn
@@ -524,16 +560,16 @@ function Wallet() {
           </TabPanel>
           <TabPanel>
             <List spacing={3}>
-              {!!listActivity && listActivity.lenght > 0 && listActivity.map((item: any) => {
+              {!!listActivity && listActivity.map((item: any) => {
                 return (
-                  <ListItem onClick={() => handleOpenTransaction(item)}>
+                  <ListItem key={item.hash} onClick={() => handleOpenTransaction(item)}>
                     <Flex>
                       <ListIcon as={DragHandleIcon} color="black.500" />
                       <Text>
-                        {item.function}
+                        {item.type}
                       </Text>
                       <Text>
-                        {item.amount}
+                        {item.version}
                       </Text>
                     </Flex>
                   </ListItem>
