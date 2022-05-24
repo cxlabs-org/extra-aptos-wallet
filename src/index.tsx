@@ -16,6 +16,7 @@ import { WalletStateProvider } from 'core/hooks/useWalletState';
 import Help from 'pages/Help';
 import CreateWallet from 'pages/CreateWallet';
 import Gallery from 'pages/Gallery';
+import Token from 'pages/Token';
 
 const theme: ThemeConfig = extendTheme({
   initialColorMode: 'dark',
@@ -47,7 +48,7 @@ root.render(
               <Route path="/help" element={<Help />} />
               <Route path="/create-wallet" element={<CreateWallet />} />
               <Route path="/account" element={<Account />} />
-              <Route path="/token" element={<Account />} />
+              <Route path="/token/:id" element={<Token />} />
             </Routes>
           </MemoryRouter>
         </WalletStateProvider>

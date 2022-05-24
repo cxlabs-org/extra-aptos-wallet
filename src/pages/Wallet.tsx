@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {
+  Box,
   Button,
   Flex,
   Heading,
@@ -18,6 +19,7 @@ import {
   PopoverBody,
   PopoverContent,
   PopoverTrigger as OrigPopoverTrigger,
+  Spacer,
   Tab,
   TabList,
   TabPanel,
@@ -30,6 +32,7 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import { ChevronRightIcon, DragHandleIcon } from '@chakra-ui/icons';
+import ChakraLink from 'core/components/ChakraLink';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import React, { useEffect, useState } from 'react';
 import {
@@ -240,7 +243,7 @@ function Wallet() {
         // TODO: import @khanh
         registerCoin(new AptosClient(NODE_URL), aptosAccount, tokenAddress).then(() => {
           setRefreshState(!refreshState);
-          onClose();
+          onCloseImport();
         });
       } catch (e) {
         const err = (e as Error).message;
@@ -296,9 +299,7 @@ function Wallet() {
 
   const handleTabActivity = () => {
     // TODO: Call list activity -> set to listActivity @khanh
-
     setListActivity([]);
-    console.log('activity');
   };
 
   const handleTabsChange = (index: any) => {
@@ -443,25 +444,29 @@ function Wallet() {
             <List spacing={3}>
               {!!listAssets && listAssets.length > 0 && listAssets.map((item: Asset) => {
                 return (
-                  <ListItem>
-                    <Flex>
-                      <Text>
-                        {item.name}
-                      </Text>
-                      <Text>
-                        {item.balance}
-                      </Text>
-                      <ListIcon as={ChevronRightIcon} color="black.500" />
-                    </Flex>
+                  <ListItem key={item.name}>
+                    <ChakraLink to={`/token/${item.address}`}>
+                      <Flex>
+                        <Text>
+                          {item.name}
+                        </Text>
+                        <Spacer />
+                        <Box>
+                          <Flex alignItems={'center'} justifyItems={'center'}>
+                            <Text>
+                              {item.balance}
+                            </Text>
+                            <ListIcon as={ChevronRightIcon} color="black.500" />
+                          </Flex>
+                        </Box>
+                      </Flex>
+                    </ChakraLink>
                   </ListItem>
                 );
               })}
             </List>
             <Flex alignItems={'center'} justifyItems={'center'} direction={'column'}>
               <Text>{"Don't see your tokens"}</Text>
-              {/* <Link color="teal.500" href="#">
-                Import tokens
-              </Link> */}
               <Popover
                 isOpen={isOpenImport}
                 onOpen={onOpenImport}
@@ -489,24 +494,6 @@ function Wallet() {
                             {...register('tokenAddress')}
                           />
                         </InputGroup>
-                        {/* <InputGroup>
-                          <Input
-                            type="number"
-                            variant="filled"
-                            placeholder="Token Symbol"
-                            required
-                            {...register('tokenSymbol')}
-                          />
-                        </InputGroup>
-                        <InputGroup>
-                          <Input
-                            type="number"
-                            variant="filled"
-                            placeholder="Token Decimal"
-                            required
-                            {...register('tokenDecimal')}
-                          />
-                        </InputGroup> */}
                         <Flex overflowY="auto" maxH="100px">
                           <Text
                             fontSize="xs"
