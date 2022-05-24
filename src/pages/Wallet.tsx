@@ -33,6 +33,7 @@ import {
 } from '@chakra-ui/react';
 import { ChevronRightIcon, DragHandleIcon } from '@chakra-ui/icons';
 import ChakraLink from 'core/components/ChakraLink';
+import TransactionDetail from 'core/components/TransactionDetail';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import React, { useEffect, useState } from 'react';
 import {
@@ -160,6 +161,7 @@ function Wallet() {
     formState: { errors }, handleSubmit, register, setError, watch,
   } = useForm();
   const { isOpen, onClose, onOpen } = useDisclosure();
+  const { isOpen: isOpenModal, onClose: onCloseModal, onOpen: onOpenModal } = useDisclosure();
   const { isOpen: isOpenImport, onClose: onCloseImport, onOpen: onOpenImport } = useDisclosure();
   const [
     accountResources,
@@ -174,6 +176,7 @@ function Wallet() {
   const [listAssets, setListAssets] = useState<Asset[]>();
   const [listActivity, setListActivity] = useState<any>();
   const [tabIndex, setTabIndex] = useState(0);
+  const [transaction, setTransaction] = useState<any>();
   const [
     lastTransactionStatus,
     setLastTransactionStatus,
@@ -298,8 +301,14 @@ function Wallet() {
   };
 
   const handleTabActivity = () => {
-    // TODO: Call list activity -> set to listActivity @khanh
+    // TODO: Call list activity -> set to listActivity @haipn
     setListActivity([]);
+  };
+
+  const handleOpenTransaction = (data: any) => {
+    // TODO: set data transaction @haipn
+    setTransaction(data);
+    onOpenModal();
   };
 
   const handleTabsChange = (index: any) => {
@@ -517,7 +526,7 @@ function Wallet() {
             <List spacing={3}>
               {!!listActivity && listActivity.lenght > 0 && listActivity.map((item: any) => {
                 return (
-                  <ListItem>
+                  <ListItem onClick={() => handleOpenTransaction(item)}>
                     <Flex>
                       <ListIcon as={DragHandleIcon} color="black.500" />
                       <Text>
@@ -539,6 +548,8 @@ function Wallet() {
           </TabPanel>
         </TabPanels>
       </Tabs>
+
+      <TransactionDetail data={transaction} isOpen={isOpenModal} onClose={onCloseModal} />
     </WalletLayout>
   );
 }
