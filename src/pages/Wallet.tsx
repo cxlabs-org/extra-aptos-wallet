@@ -33,7 +33,7 @@ import { ChevronRightIcon, DragHandleIcon } from '@chakra-ui/icons';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import React, { useEffect, useState } from 'react';
 import {
-  AptosAccount, AptosClient, FaucetClient, Types,
+  AptosAccount, AptosClient, FaucetClient, HexString, Types,
 } from 'aptos';
 import { AccountResource } from 'aptos/src/api/data-contracts';
 import { FaFaucet } from 'react-icons/fa';
@@ -49,6 +49,7 @@ import {
   secondaryErrorMessageColor,
   STATIC_GAS_AMOUNT,
 } from '../core/constants';
+import { registerCoin, getCoinAddress } from '../core/utils/client';
 
 /**
  * TODO: Will be fixed in upcoming Chakra-UI 2.0.0
@@ -88,6 +89,14 @@ interface FundWithFaucetProps {
   address?: string;
   faucetUrl?: string;
   nodeUrl?: string;
+}
+
+/** asset model */
+interface Asset {
+  address?: HexString,
+  balance?: number,
+  name?: string,
+  symbol?: string
 }
 
 const fundWithFaucet = async ({
@@ -159,9 +168,9 @@ function Wallet() {
   const [isImportLoading, setIsImportLoading] = useState(false);
   const [lastBalance, setLastBalance] = useState<number>(-1);
   const [lastTransferAmount, setLastTransferAmount] = useState<number>(-1);
-  const [listAssets, setListAssets] = useState<any>();
+  const [listAssets, setListAssets] = useState<Asset[]>();
   const [listActivity, setListActivity] = useState<any>();
-  const [tabIndex, setTabIndex] = useState(-1);
+  const [tabIndex, setTabIndex] = useState(0);
   const [
     lastTransactionStatus,
     setLastTransactionStatus,
@@ -180,8 +189,8 @@ function Wallet() {
   const transferAmount: string | undefined | null = watch('transferAmount');
 
   const tokenAddress: string | undefined | null = watch('tokenAddress');
-  const tokenSymbol: string | undefined | null = watch('tokenSymbol');
-  const tokenDecimal: string | undefined | null = watch('tokenDecimal');
+  // const tokenSymbol: string | undefined | null = watch('tokenSymbol');
+  // const tokenDecimal: string | undefined | null = watch('tokenDecimal');
 
   const onSubmit: SubmitHandler<Inputs> = async (data, event) => {
     event?.preventDefault();
@@ -225,13 +234,14 @@ function Wallet() {
 
   const onSubmitImport: SubmitHandler<Inputs> = async (data, event) => {
     event?.preventDefault();
-    if (tokenAddress && tokenSymbol && tokenDecimal) {
+    if (tokenAddress && aptosAccount) {
       setIsImportLoading(true);
       try {
         // TODO: import @khanh
-
-        setRefreshState(!refreshState);
-        onClose();
+        registerCoin(new AptosClient(NODE_URL), aptosAccount, tokenAddress).then(() => {
+          setRefreshState(!refreshState);
+          onClose();
+        });
       } catch (e) {
         const err = (e as Error).message;
         if (err !== TransferResult.IncorrectPayload && err !== TransferResult.Success) {
@@ -249,12 +259,39 @@ function Wallet() {
     setIsFaucetLoading(false);
   };
 
-  // Change tab
-  const handleTabAssets = () => {
-    // TODO: Call list assets -> set to listAssets @khanh
+  const loadAssets = async (resources: AccountResource[]) => {
+    const client = new AptosClient(NODE_URL);
+    const assets: Asset[] = [];
+    if (resources) {
+      for (let index = 0; index < resources.length; index += 1) {
+        const resource = resources[index];
+        if (resource.type.includes('0x1::Coin::CoinStore') && !resource.type.includes('0x1::TestCoin::TestCoin')) {
+          const coinAddress = getCoinAddress(resource.type);
+          if (coinAddress) {
+            // eslint-disable-next-line no-await-in-loop
+            const r = await client.getAccountResources(coinAddress);
+            if (r) {
+              const coinInfo = r.find((e) => e.type.includes('0x1::Coin::CoinInfo'))?.data as { decimal: string, name: string, symbol: string };
+              if (coinInfo) {
+                assets.push({
+                  address: new HexString(coinAddress),
+                  balance: parseFloat((resource.data as { coin: { value: string } }).coin.value),
+                  name: coinInfo.name,
+                  symbol: coinInfo.symbol,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+    return assets;
+  };
 
-    setListAssets([]);
-    console.log('assets');
+  // Change tab
+  const handleTabAssets = (resource: AccountResource[]) => {
+    // TODO: Call list assets -> set to listAssets @khanh
+    loadAssets(resource).then(setListAssets);
   };
 
   const handleTabActivity = () => {
@@ -288,26 +325,34 @@ function Wallet() {
       const tempAccountResources = data;
       setAccountResources(tempAccountResources);
       setIsImportLoading(false);
+      if (tempAccountResources) {
+        loadAssets(tempAccountResources).then(setListAssets);
+      }
     });
   }, [refreshState]);
 
-  useEffect(() => {
-    setTabIndex(0);
-    // handleTabAssets();
-  }, []);
+  // useEffect(() => {
+  //   setTabIndex(0);
+  //   // handleTabAssets();
+  // }, []);
 
   useEffect(() => {
-    switch (tabIndex) {
-      case 0:
-        handleTabAssets();
-        break;
+    if (aptosAccount) {
+      getAccountResources({ address: aptosAccount.address().toString() }).then((resources) => {
+        setAccountResources(resources);
+        switch (tabIndex) {
+          case 0:
+            if (resources) handleTabAssets(resources);
+            break;
 
-      case 1:
-        handleTabActivity();
-        break;
+          case 1:
+            handleTabActivity();
+            break;
 
-      default:
-        break;
+          default:
+            break;
+        }
+      });
     }
   }, [tabIndex]);
 
@@ -396,7 +441,7 @@ function Wallet() {
         <TabPanels>
           <TabPanel>
             <List spacing={3}>
-              {!!listAssets && listAssets.lenght > 0 && listAssets.map((item: any) => {
+              {!!listAssets && listAssets.length > 0 && listAssets.map((item: Asset) => {
                 return (
                   <ListItem>
                     <Flex>
@@ -404,7 +449,7 @@ function Wallet() {
                         {item.name}
                       </Text>
                       <Text>
-                        {item.amount}
+                        {item.balance}
                       </Text>
                       <ListIcon as={ChevronRightIcon} color="black.500" />
                     </Flex>
@@ -444,7 +489,7 @@ function Wallet() {
                             {...register('tokenAddress')}
                           />
                         </InputGroup>
-                        <InputGroup>
+                        {/* <InputGroup>
                           <Input
                             type="number"
                             variant="filled"
@@ -461,7 +506,7 @@ function Wallet() {
                             required
                             {...register('tokenDecimal')}
                           />
-                        </InputGroup>
+                        </InputGroup> */}
                         <Flex overflowY="auto" maxH="100px">
                           <Text
                             fontSize="xs"
