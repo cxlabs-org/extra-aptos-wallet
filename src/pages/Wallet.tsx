@@ -450,10 +450,10 @@ function Wallet() {
 
         <TabPanels>
           <TabPanel>
-            <List spacing={3}>
+            <List spacing={0}>
               {!!listAssets && listAssets.length > 0 && listAssets.map((item: Asset) => {
                 return (
-                  <ListItem key={item.name}>
+                  <ListItem key={item.name} paddingBottom={2} paddingTop={2} borderBottom={1}>
                     <ChakraLink to={`/token/${item.address}`}>
                       <Flex>
                         <Text>
