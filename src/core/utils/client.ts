@@ -11,6 +11,16 @@ export const getCoinAddress = (resource: string): string | undefined => {
     return undefined;
 };
 
+export const getCoinExactName = (resource: string | undefined): string | undefined => {
+    if (resource) {
+        const coinPart = /<.*>/g.exec(resource);
+        if (coinPart) {
+            return coinPart[0].replace('<', '').replace('>', '');
+        }
+    }
+    return undefined;
+};
+
 export const executeTransactionWithPayload = async (
     client: AptosClient,
     accountFrom: AptosAccount,
@@ -43,3 +53,24 @@ export const registerCoin = async (
     };
     return executeTransactionWithPayload(client, coinReceiver, payload);
 };
+
+export async function transferToken(
+    client: AptosClient,
+    owner: AptosAccount,
+    address: string,
+    amount: number,
+    exactTokenName: string,
+): Promise<string> {
+    const payload: {
+        arguments: string[];
+        function: string;
+        type: string;
+        type_arguments: any[];
+    } = {
+        arguments: [address, amount.toString()],
+        function: '0x1::Coin::transfer',
+        type: 'script_function_payload',
+        type_arguments: [`${exactTokenName}`],
+    };
+    return executeTransactionWithPayload(client, owner, payload);
+}
