@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {
-  Box,
   Button,
   Flex,
   Heading,
@@ -10,30 +9,25 @@ import {
   Input,
   InputGroup,
   InputRightAddon,
-  Link,
-  List,
-  ListIcon,
-  ListItem,
   Popover,
   PopoverArrow,
   PopoverBody,
   PopoverContent,
   PopoverTrigger as OrigPopoverTrigger,
-  Spacer,
   Text,
   useColorMode,
   useDisclosure,
   useToast,
+  // useToast,
   VStack,
 } from '@chakra-ui/react';
-import { ChevronRightIcon } from '@chakra-ui/icons';
 import ChakraLink from 'core/components/ChakraLink';
 import { useParams } from 'react-router-dom';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import React, { useEffect, useState } from 'react';
 import {
   // AptosAccount,
-  AptosClient, HexString, Types,
+  AptosClient,
 } from 'aptos';
 import { AccountResource } from 'aptos/src/api/data-contracts';
 import { IoIosSend } from 'react-icons/io';
@@ -42,37 +36,18 @@ import useWalletState from 'core/hooks/useWalletState';
 import withSimulatedExtensionContainer from 'core/components/WithSimulatedExtensionContainer';
 import { seconaryAddressFontColor } from 'core/components/WalletHeader';
 import WalletLayout from 'core/layouts/WalletLayout';
+import { getCoinExactName, transfer } from 'core/utils/client';
 import {
   NODE_URL,
   secondaryErrorMessageColor,
   // STATIC_GAS_AMOUNT,
 } from '../core/constants';
-import { getCoinAddress } from '../core/utils/client';
 
 /**
  * TODO: Will be fixed in upcoming Chakra-UI 2.0.0
  * @see https://github.com/chakra-ui/chakra-ui/issues/5896
  */
 export const PopoverTrigger: React.FC<{ children: React.ReactNode }> = OrigPopoverTrigger;
-
-interface GetAccountResourcesProps {
-  address?: string;
-  nodeUrl?: string;
-}
-
-export const getAccountResources = async ({
-  nodeUrl = NODE_URL,
-  address,
-}: GetAccountResourcesProps) => {
-  const client = new AptosClient(nodeUrl);
-  if (address) {
-    const accountResources = await client.getAccountResources(
-      address,
-    );
-    return accountResources;
-  }
-  return undefined;
-};
 
 export type Inputs = Record<string, any>;
 
@@ -82,14 +57,6 @@ export type Inputs = Record<string, any>;
 //   nodeUrl?: string;
 //   toAddress: string;
 // }
-
-/** asset model */
-interface Asset {
-  address?: HexString,
-  balance?: number,
-  name?: string,
-  symbol?: string
-}
 
 const TransferResult = Object.freeze({
   AmountOverLimit: 'Amount is over limit',
@@ -118,19 +85,6 @@ const TransferResult = Object.freeze({
 //   await client.waitForTransaction(transactionRes.hash);
 // };
 
-const getAccountBalanceFromAccountResources = (
-  accountResources: Types.AccountResource[] | undefined,
-): Number => {
-  if (accountResources) {
-    const accountResource = (accountResources) ? accountResources?.find((r) => r.type === '0x1::Coin::CoinStore<0x1::TestCoin::TestCoin>') : undefined;
-    const tokenBalance = (accountResource)
-      ? (accountResource.data as { coin: { value: string } }).coin.value
-      : undefined;
-    return Number(tokenBalance);
-  }
-  return -1;
-};
-
 function Token() {
   const { colorMode } = useColorMode();
   const { aptosAccount } = useWalletState();
@@ -140,15 +94,13 @@ function Token() {
   } = useForm();
   const { isOpen, onClose, onOpen } = useDisclosure();
   const [
-    accountResources,
-    setAccountResources,
-  ] = useState<AccountResource[] | undefined>(undefined);
+    accountResource,
+    setAccountResource,
+  ] = useState<AccountResource | undefined>(undefined);
   const [refreshState, setRefreshState] = useState(true);
   const [isTransferLoading, setIsTransferLoading] = useState(false);
   const [lastBalance, setLastBalance] = useState<number>(-1);
   const [lastTransferAmount, setLastTransferAmount] = useState<number>(-1);
-  const [listActivity, setListActivity] = useState<any>();
-  const [asset, setAsset] = useState<Asset>();
   const [
     lastTransactionStatus,
     setLastTransactionStatus,
@@ -156,9 +108,7 @@ function Token() {
   const toast = useToast();
 
   const address = aptosAccount?.address().hex();
-  const accountResource = (accountResources)
-    ? accountResources?.find((r) => r.type === `0x1::Coin::CoinStore<${id}>`)
-    : undefined;
+
   const tokenBalance = (accountResource)
     ? (accountResource.data as { coin: { value: string } }).coin.value
     : undefined;
@@ -174,6 +124,11 @@ function Token() {
       setLastTransferAmount(Number(transferAmount));
       try {
         // TODO: @khanh submit tranfer
+        const resourceName = getCoinExactName(id);
+        if (aptosAccount && resourceName) {
+          // eslint-disable-next-line max-len
+          await transfer(new AptosClient(NODE_URL), aptosAccount, toAddress, Number(transferAmount), resourceName);
+        }
 
         // if (Number(transferAmount) >= Number(tokenBalance) - STATIC_GAS_AMOUNT) {
         //   setLastTransactionStatus(TransferResult.AmountWithGasOverLimit);
@@ -214,50 +169,30 @@ function Token() {
     // TODO: get gas and set gas @khanh
   };
 
-  const loadAsset = async (resources: AccountResource[]) => {
-    const client = new AptosClient(NODE_URL);
-    let assetTemp: Asset = {};
-    if (resources) {
-      for (let index = 0; index < resources.length; index += 1) {
-        const resource = resources[index];
-        // Check resourse type vs resource type input
-        if (resource.type.includes('0x1::Coin::CoinStore') && !resource.type.includes(id || '')) {
-          const coinAddress = getCoinAddress(resource.type);
-          if (coinAddress) {
-            // eslint-disable-next-line no-await-in-loop
-            const r = await client.getAccountResources(coinAddress);
-            if (r) {
-              const coinInfo = r.find((e) => e.type.includes('0x1::Coin::CoinInfo'))?.data as { decimal: string, name: string, symbol: string };
-              if (coinInfo) {
-                assetTemp = {
-                  address: new HexString(coinAddress),
-                  balance: parseFloat((resource.data as { coin: { value: string } }).coin.value),
-                  name: coinInfo.name,
-                  symbol: coinInfo.symbol,
-                };
-              }
-            }
-          }
-        }
+  useEffect(() => {
+
+  }, []);
+
+  const getAccountResource = async () => {
+    if (address) {
+      // TODO: Call get resoure token
+      const client = new AptosClient(NODE_URL);
+      if (address && id) {
+        // eslint-disable-next-line max-len
+        client.getAccountResource(address, id, undefined).then(setAccountResource);
       }
     }
-    return assetTemp;
-  };
-
-  const handleActivity = () => {
-    // TODO: Call list activity -> set to listActivity of token @khanh
-    setListActivity([]);
-    console.log('activity');
+    return undefined;
   };
 
   useEffect(() => {
-    getAccountResources({ address })?.then((data) => {
+    getAccountResource()?.then((data) => {
       if (
         isTransferLoading
         && (lastTransactionStatus === TransferResult.Success
           || lastTransactionStatus === TransferResult.IncorrectPayload)
       ) {
-        const newTokenBalance = getAccountBalanceFromAccountResources(data);
+        const newTokenBalance = tokenBalance;
         toast({
           description: `${lastTransactionStatus}. Amount transferred: ${lastTransferAmount}, gas consumed: ${lastBalance - lastTransferAmount - Number(newTokenBalance)}`,
           duration: 7000,
@@ -267,26 +202,10 @@ function Token() {
         });
       }
       setIsTransferLoading(false);
-      const tempAccountResources = data;
-      setAccountResources(tempAccountResources);
+      const tempAccountResource = data;
+      setAccountResource(tempAccountResource);
     });
   }, [refreshState]);
-
-  useEffect(() => {
-    if (aptosAccount) {
-      // TODO: Call get resoure token
-      getAccountResources({ address: aptosAccount.address().toString() }).then((resources) => {
-        setAccountResources(resources);
-        if (resources) {
-          loadAsset(resources).then(setAsset);
-        }
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    handleActivity();
-  }, []);
 
   return (
     <WalletLayout>
@@ -295,7 +214,7 @@ function Token() {
         <Text fontSize="sm" color={seconaryAddressFontColor[colorMode]}>
           Assets
           {' '}
-          {!!asset && !!asset.name && asset.name}
+          {/* {!!asset && !!asset.name && asset.name} */}
           {' '}
           balance
         </Text>
@@ -381,41 +300,6 @@ function Token() {
         </HStack>
 
       </VStack>
-
-      <List spacing={3} marginTop={10}>
-        {!!listActivity && listActivity.length > 0 ? listActivity.map((item: any) => {
-          return (
-            <ListItem key={item.name}>
-              <ChakraLink to={`/token/${item.address}`}>
-                <Flex>
-                  <Text>
-                    {item.name}
-                  </Text>
-                  <Spacer />
-                  <Box>
-                    <Flex alignItems={'center'} justifyItems={'center'}>
-                      <Text>
-                        {item.balance}
-                      </Text>
-                      <ListIcon as={ChevronRightIcon} color="black.500" />
-                    </Flex>
-                  </Box>
-                </Flex>
-              </ChakraLink>
-            </ListItem>
-          );
-        }) : (
-          <Flex alignItems={'center'} justifyItems={'center'} direction={'column'}>
-            <Text textAlign={'center'} marginTop={10}>
-              Empty data
-            </Text>
-            <Link color="teal.500" href="#" onClick={handleActivity}>
-              Load acivity
-            </Link>
-          </Flex>
-
-        )}
-      </List>
     </WalletLayout>
   );
 }

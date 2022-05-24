@@ -98,6 +98,7 @@ interface FundWithFaucetProps {
 interface Asset {
   address?: HexString,
   balance?: number,
+  exactName?: string,
   name?: string,
   symbol?: string
 }
@@ -270,6 +271,7 @@ function Wallet() {
         const resource = resources[index];
         if (resource.type.includes('0x1::Coin::CoinStore') && !resource.type.includes('0x1::TestCoin::TestCoin')) {
           const coinAddress = getCoinAddress(resource.type);
+          const exectName = resource.type;
           if (coinAddress) {
             // eslint-disable-next-line no-await-in-loop
             const r = await client.getAccountResources(coinAddress);
@@ -279,6 +281,7 @@ function Wallet() {
                 assets.push({
                   address: new HexString(coinAddress),
                   balance: parseFloat((resource.data as { coin: { value: string } }).coin.value),
+                  exactName: exectName,
                   name: coinInfo.name,
                   symbol: coinInfo.symbol,
                 });
@@ -445,7 +448,7 @@ function Wallet() {
               {!!listAssets && listAssets.length > 0 && listAssets.map((item: Asset) => {
                 return (
                   <ListItem key={item.name}>
-                    <ChakraLink to={`/token/${item.address}`}>
+                    <ChakraLink to={`/token/${item.exactName}`}>
                       <Flex>
                         <Text>
                           {item.name}
