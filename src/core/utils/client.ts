@@ -54,7 +54,7 @@ export const registerCoin = async (
     return executeTransactionWithPayload(client, coinReceiver, payload);
 };
 
-export async function transfer(
+export async function transferToken(
     client: AptosClient,
     owner: AptosAccount,
     address: string,

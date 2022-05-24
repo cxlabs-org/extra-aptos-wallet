@@ -36,7 +36,7 @@ import useWalletState from 'core/hooks/useWalletState';
 import withSimulatedExtensionContainer from 'core/components/WithSimulatedExtensionContainer';
 import { seconaryAddressFontColor } from 'core/components/WalletHeader';
 import WalletLayout from 'core/layouts/WalletLayout';
-import { getCoinExactName, transfer } from 'core/utils/client';
+import { getCoinExactName, transferToken } from 'core/utils/client';
 import {
   NODE_URL,
   secondaryErrorMessageColor,
@@ -122,7 +122,7 @@ function Token() {
         const resourceName = getCoinExactName(id);
         if (aptosAccount && resourceName) {
           // eslint-disable-next-line max-len
-          await transfer(new AptosClient(NODE_URL), aptosAccount, toAddress, Number(transferAmount), resourceName);
+          await transferToken(new AptosClient(NODE_URL), aptosAccount, toAddress, Number(transferAmount), resourceName);
         }
 
         if (Number(transferAmount) >= Number(tokenBalance) - STATIC_GAS_AMOUNT) {
