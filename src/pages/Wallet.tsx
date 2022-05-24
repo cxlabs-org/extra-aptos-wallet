@@ -4,6 +4,7 @@
 import {
   Box,
   Button,
+  Checkbox,
   Flex,
   Heading,
   HStack,
@@ -31,6 +32,7 @@ import {
   useToast,
   VStack,
 } from '@chakra-ui/react';
+import { renderAddressWallet } from 'core/utils/func';
 import { ChevronRightIcon, DragHandleIcon } from '@chakra-ui/icons';
 import ChakraLink from 'core/components/ChakraLink';
 import TransactionDetail from 'core/components/TransactionDetail';
@@ -354,6 +356,10 @@ function Wallet() {
     setTabIndex(index);
   };
 
+  const renderTime = (time: number) => {
+    return new Date(time).toUTCString();
+  };
+
   useEffect(() => {
     getAccountResources({ address })?.then((data) => {
       if (
@@ -492,7 +498,7 @@ function Wallet() {
             <List spacing={0}>
               {!!listAssets && listAssets.length > 0 && listAssets.map((item: Asset) => {
                 return (
-                  <ListItem key={item.name}>
+                  <ListItem key={item.name} py={2} borderBottom="1px" borderColor="gray.200">
                     <ChakraLink to={`/token/${item.exactName}`}>
                       <Flex>
                         <Text>
@@ -565,14 +571,34 @@ function Wallet() {
             <List spacing={3}>
               {!!listActivity && listActivity.map((item: any) => {
                 return (
-                  <ListItem key={item.hash} onClick={() => handleOpenTransaction(item)}>
-                    <Flex>
-                      <ListIcon as={DragHandleIcon} color="black.500" />
+                  <ListItem
+                    py={2}
+                    borderBottom="1px"
+                    borderColor="gray.200"
+                    cursor={'pointer'}
+                    key={item.hash}
+                    onClick={() => handleOpenTransaction(item)}
+                  >
+                    <Flex alignItems={'center'} justifyContent={'space-between'}>
+                      <Flex alignItems={'center'}>
+                        <ListIcon as={DragHandleIcon} color="black.500" />
+                        {item.success && (
+                          <Checkbox colorScheme="green" defaultChecked marginRight={2} />
+                        )}
+                        {!item.success && (
+                          <Checkbox colorScheme="red" defaultChecked marginRight={2} />
+                        )}
+                        <Flex flexDirection={'column'}>
+                          <Text>
+                            {renderAddressWallet(item.hash, 10)}
+                          </Text>
+                          <Text fontSize={'xs'}>
+                            {renderTime(item.timestamp)}
+                          </Text>
+                        </Flex>
+                      </Flex>
                       <Text>
-                        {item.type}
-                      </Text>
-                      <Text>
-                        {item.version}
+                        {item.gas || 0}
                       </Text>
                     </Flex>
                   </ListItem>
