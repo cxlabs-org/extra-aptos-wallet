@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {
-  Center, HStack, Text, Tooltip, useClipboard, useColorMode,
+  Flex, HStack, Text, Tooltip, useClipboard, useColorMode,
 } from '@chakra-ui/react';
 import React from 'react';
 import useWalletState from 'core/hooks/useWalletState';
+import { renderAddressWallet } from 'core/utils/func';
 
 const secondaryHeaderBgColor = {
   dark: 'gray.700',
@@ -25,10 +26,10 @@ export default function WalletHeader() {
   );
 
   return (
-    <Center
+    <Flex
       maxW="100%"
       width="100%"
-      py={2}
+      py={6}
       bgColor={secondaryHeaderBgColor[colorMode]}
     >
       <HStack px={2}>
@@ -51,11 +52,11 @@ export default function WalletHeader() {
               cursor="pointer"
               onClick={onCopy}
             >
-              {aptosAccount?.address().hex()}
+              {renderAddressWallet(aptosAccount?.address().hex(), 6)}
             </Text>
           </Text>
         </Tooltip>
       </HStack>
-    </Center>
+    </Flex>
   );
 }

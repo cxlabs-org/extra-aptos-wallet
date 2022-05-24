@@ -21,6 +21,7 @@ import {
   // useToast,
   VStack,
 } from '@chakra-ui/react';
+import { ChevronLeftIcon } from '@chakra-ui/icons';
 import ChakraLink from 'core/components/ChakraLink';
 import { useParams } from 'react-router-dom';
 import { SubmitHandler, useForm } from 'react-hook-form';
@@ -202,8 +203,10 @@ function Token() {
 
   return (
     <WalletLayout>
-      <VStack width="100%" paddingTop={8}>
-        <ChakraLink to="/wallet">Back to Wallet</ChakraLink>
+      <VStack width="100%" paddingTop={8} position={'relative'}>
+        <ChakraLink to="/wallet" position={'absolute'} top={8} left={4}>
+          <ChevronLeftIcon />
+        </ChakraLink>
         <Text fontSize="sm" color={seconaryAddressFontColor[colorMode]}>
           Assets
           {' '}
