@@ -1,7 +1,15 @@
 # Aptos Web Wallet
 Aptos Wallet but better.
 
-![Alt text](image (2).png?raw=true "Title")
+![](https://github.com/cxlabs-org/extra-aptos-wallet/blob/main/FTlj0mZUYAEaOz0.jpeg)
+
+An extra version that unofficially developed by [CxLabs](https://cxlabs.org) aiming to provide a more convenient entrace of the Aptos network for all the users of Aptos-based-blockchains
+
+- Friendly UI
+- Import / Transfer Token
+- Transactions History
+- Secure local accounts storage
+- Intuitive Tokens management
 
 ## Setup
 
