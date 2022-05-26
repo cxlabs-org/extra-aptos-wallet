@@ -1,4 +1,7 @@
 # Aptos Web Wallet
+Aptos Wallet but better.
+
+![Alt text](image (2).png?raw=true "Title")
 
 ## Setup
 
