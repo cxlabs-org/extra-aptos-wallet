@@ -1,4 +1,7 @@
 # Aptos Web Wallet
+[![Release](https://img.shields.io/github/v/release/cxlabs-org/extra-aptos-wallet)](https://github.com/cxlabs-org/extra-aptos-wallet/releases)
+[![tag](https://img.shields.io/github/v/tag/cxlabs-org/extra-aptos-wallet)](https://github.com/cxlabs-org/extra-aptos-wallet/tags)
+
 Aptos Wallet but better.
 
 ![](https://github.com/cxlabs-org/extra-aptos-wallet/blob/main/FTlj0mZUYAEaOz0.jpeg)
